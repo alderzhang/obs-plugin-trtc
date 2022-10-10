@@ -1,4 +1,4 @@
-#include <obs-module.h>
+﻿#include <obs-module.h>
 #include <ITRTCCloud.h>
 #include <mutex>
 
