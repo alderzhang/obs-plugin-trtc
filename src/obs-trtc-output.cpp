@@ -145,7 +145,7 @@ public:
     trtcCloud->sendCustomVideoData(TRTCVideoStreamTypeBig, &trtcFrame);
   }
 
-  void receiveAudio(size_t mix_idx, struct audio_data *frame) {
+  void receiveAudio(struct audio_data *frame) {
     if (!this->sendReady) return;
     // 将帧数据平铺
     uint32_t offset = 0;
@@ -249,10 +249,10 @@ static void receive_video(void *data, struct video_data *frame)
   impl->receiveVideo(frame);
 }
 
-static void receive_audio(void *data, size_t mix_idx, struct audio_data *frame)
+static void receive_audio(void *data, struct audio_data *frame)
 {
 	TRTCImpl *impl = (TRTCImpl *)data;
-  impl->receiveAudio(mix_idx, frame);
+  impl->receiveAudio(frame);
 }
 
 static uint64_t trtc_output_total_bytes(void *data)
@@ -273,6 +273,6 @@ void RegisterTRTCOutput()
 	info.stop = trtc_output_stop,
 	info.raw_video = receive_video,
 	info.get_total_bytes = trtc_output_total_bytes,
-	info.raw_audio2 = receive_audio,
+	info.raw_audio = receive_audio,
 	obs_register_output(&info);
 }
