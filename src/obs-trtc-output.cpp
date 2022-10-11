@@ -74,7 +74,7 @@ public:
     video_t* video = obs_output_video(this->output);
     if (!video)
     {
-      blog(LOG_WARNING, "Trying to start without video!");
+      blog(LOG_WARNING, "output video not found.");
     } else {
       // 视频参数初始化
       this->width = (int)obs_output_get_width(this->output);
@@ -93,7 +93,7 @@ public:
     audio_t* audio = obs_output_audio(this->output);
     if (!audio)
     {
-      blog(LOG_WARNING, "Trying to start without audio!");
+      blog(LOG_WARNING, "output audio not found.");
     } else {
       // 音频参数初始化
       this->sampleRate = 48000;
@@ -112,7 +112,7 @@ public:
     }
 
     if (this->dataFlag == -1) {
-      this->_setLastError("Trying to start without any video or audio!");
+      this->_setLastError("Trying to start without both video and audio!");
       return false;
     }
 
@@ -126,10 +126,10 @@ public:
     trtcCloud->enterRoom(params,  TRTCAppSceneLIVE);
     // 设置视频编码参数
     TRTCVideoEncParam encParam;
-    encParam.videoResolution = TRTCVideoResolution_1920_1080;
+    encParam.videoResolution = TRTCVideoResolution_960_720;
     encParam.resMode = TRTCVideoResolutionModeLandscape;
     encParam.videoFps = 20;
-    encParam.videoBitrate = 3000;
+    encParam.videoBitrate = 1500;
     encParam.minVideoBitrate = 300;
     encParam.enableAdjustRes = false;
     trtcCloud->setVideoEncoderParam(encParam);
@@ -151,18 +151,43 @@ public:
   }
 
   void receiveVideo(struct video_data *frame) {
-    blog(LOG_DEBUG, "TRTC_receiveVideo");
+    // blog(LOG_DEBUG, "TRTC_receiveVideo");
     if (!this->sendReady) return;
     // 将帧数据平铺
-    uint32_t offset = 0;
-    for (int plane = 0; plane < MAX_AV_PLANES; plane++) {
-      const uint8_t *data = frame->data[plane];
-      uint32_t lineSize = frame->linesize[plane];
-      if (data && offset + lineSize <= this->videoSize) {
-        memcpy(this->videoData + offset, data, lineSize);
-        offset += lineSize;
-      }
+    char *dst = this->videoData;
+    uint32_t dstWidth = this->width;
+    uint8_t *src = frame->data[0];
+    uint32_t srcWidth = frame->linesize[0];
+    // 拷贝Y通道
+    for (int i = 0; i < this->height; ++i) {
+      memcpy(dst, src, dstWidth);
+      dst += dstWidth;
+      src += srcWidth;
     }
+    // 拷贝U通道
+    dstWidth = this->width / 2;
+    src = frame->data[1];
+    srcWidth = frame->linesize[1];
+    for (int i = 0; i < this->height / 2; ++i) {
+      memcpy(dst, src, dstWidth);
+      dst += dstWidth;
+      src += srcWidth;
+    }
+    // 拷贝V通道
+    dstWidth = this->width / 2;
+    src = frame->data[2];
+    srcWidth = frame->linesize[2];
+    for (int i = 0; i < this->height / 2; ++i) {
+      memcpy(dst, src, dstWidth);
+      dst += dstWidth;
+      src += srcWidth;
+    }
+//    // dump帧数据到文件方便调试
+//    FILE *fp = fopen("frames.yuv", "wb+");
+//    if (fp) {
+//      fwrite(this->videoData, this->videoSize, 1, fp);
+//      fclose(fp);
+//    }
     // 塞入TRTC
     ITRTCCloud *trtcCloud = getTRTCShareInstance();
     TRTCVideoFrame trtcFrame;
@@ -177,7 +202,7 @@ public:
   }
 
   void receiveAudio(struct audio_data *frame) {
-    blog(LOG_DEBUG, "TRTC_receiveAudio");
+    // blog(LOG_DEBUG, "TRTC_receiveAudio");
     if (!this->sendReady) return;
     // 将帧数据平铺
     uint32_t offset = 0;
