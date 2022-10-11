@@ -1,6 +1,5 @@
 ﻿#include <obs-module.h>
 #include <ITRTCCloud.h>
-#include <mutex>
 
 // TRTC进房信息
 #define SDK_APP_ID 0
