@@ -71,12 +71,14 @@ public:
   }
 
 	void onCreate() {
+    blog(LOG_DEBUG, "TRTC_onCreate");
 		// 初始化TRTC
 		ITRTCCloud *trtcCloud = getTRTCShareInstance();
 		trtcCloud->addCallback(this);
 	}
 
   void onDestroy() {
+    blog(LOG_DEBUG, "TRTC_onDestroy");
     // 销毁TRTC
     ITRTCCloud *trtcCloud = getTRTCShareInstance();
     trtcCloud->removeCallback(this);
@@ -84,6 +86,7 @@ public:
   }
 
 	bool onStart() {
+    blog(LOG_DEBUG, "TRTC_onStart");
     if (this->sendReady) return true;
     ITRTCCloud *trtcCloud = getTRTCShareInstance();
     // TRTC进房
@@ -112,6 +115,7 @@ public:
 	}
 
   void onStop() {
+    blog(LOG_DEBUG, "TRTC_onStop");
     if (!this->sendReady) return;
     ITRTCCloud *trtcCloud = getTRTCShareInstance();
     // 禁用视频/音频自定义采集
@@ -122,6 +126,7 @@ public:
   }
 
   void receiveVideo(struct video_data *frame) {
+    blog(LOG_DEBUG, "TRTC_receiveVideo");
     if (!this->sendReady) return;
     // 将帧数据平铺
     uint32_t offset = 0;
@@ -147,6 +152,7 @@ public:
   }
 
   void receiveAudio(struct audio_data *frame) {
+    blog(LOG_DEBUG, "TRTC_receiveAudio");
     if (!this->sendReady) return;
     // 将帧数据平铺
     uint32_t offset = 0;
@@ -190,6 +196,7 @@ public:
 
 
 	virtual void onEnterRoom(int result) {
+    blog(LOG_DEBUG, "TRTC_onEnterRoom: %d", result);
     std::unique_lock<std::mutex> lck(this->statusMutex);
     if (result < 0) {
       this->_setLastError("enter room failed: %d", result);
@@ -200,6 +207,7 @@ public:
 	}
 
 	virtual void onExitRoom(int reason) {
+    blog(LOG_DEBUG, "TRTC_onExitRoom: %d", reason);
     std::unique_lock<std::mutex> lck(this->statusMutex);
     this->sendReady = false;
 	}
@@ -217,7 +225,6 @@ static const char *trtc_output_getname(void *unused)
 
 static void *trtc_output_create(obs_data_t *settings, obs_output_t *output)
 {
-  blog(LOG_DEBUG, "trtc_output_create");
 	TRTCImpl *impl = new TRTCImpl(output);
 	impl->onCreate();
 	UNUSED_PARAMETER(settings);
@@ -226,7 +233,6 @@ static void *trtc_output_create(obs_data_t *settings, obs_output_t *output)
 
 static void trtc_output_destroy(void *data)
 {
-  blog(LOG_DEBUG, "trtc_output_destroy");
 	TRTCImpl *impl = (TRTCImpl *)data;
 	if (impl) {
 		impl->onDestroy();
@@ -236,28 +242,24 @@ static void trtc_output_destroy(void *data)
 
 static bool trtc_output_start(void *data)
 {
-  blog(LOG_DEBUG, "trtc_output_start");
 	TRTCImpl *impl = (TRTCImpl *)data;
 	return impl->onStart();
 }
 
 static void trtc_output_stop(void *data, uint64_t ts)
 {
-  blog(LOG_DEBUG, "trtc_output_stop");
 	TRTCImpl *impl = (TRTCImpl *)data;
   impl->onStop();
 }
 
 static void receive_video(void *data, struct video_data *frame)
 {
-  blog(LOG_DEBUG, "receive_video");
 	TRTCImpl *impl = (TRTCImpl *)data;
   impl->receiveVideo(frame);
 }
 
 static void receive_audio(void *data, struct audio_data *frame)
 {
-  blog(LOG_DEBUG, "receive_audio");
 	TRTCImpl *impl = (TRTCImpl *)data;
   impl->receiveAudio(frame);
 }
