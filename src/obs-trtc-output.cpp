@@ -12,15 +12,16 @@ using namespace liteav;
 class TRTCImpl: public ITRTCCloudCallback {
 private:
 	obs_output_t *output;
+  int dataFlag;
   int width;
   int height;
   char *videoData;
   uint32_t videoSize;
   uint32_t sampleRate;
   uint32_t channel;
-  uint32_t sentBytes;
   char *audioData;
   uint32_t audioSize;
+  uint32_t sentBytes;
   bool sendReady;
 
   void _setLastError(const char * format, ...) {
@@ -35,36 +36,20 @@ private:
 public:
 	TRTCImpl(obs_output_t *output) {
 		this->output = output;
-    // 视频参数初始化
-    this->width = (int)obs_output_get_width(output);
-    this->height = (int)obs_output_get_height(output);
-    this->videoSize = this->width * this->height * 3 / 2;
-    this->videoData = new char[this->videoSize];
-    video_scale_info videoInfo = {};
-    videoInfo.format = VIDEO_FORMAT_I420;
-    videoInfo.width = this->width;
-    videoInfo.height = this->height;
-    videoInfo.range = VIDEO_RANGE_DEFAULT;
-    videoInfo.colorspace = VIDEO_CS_DEFAULT;
-    obs_output_set_video_conversion(output, &videoInfo);
-    // 音频参数初始化
-    this->sampleRate = 48000;
-    this->channel = 1;
-    this->audioSize = this->sampleRate * 2 * this->channel;
-    this->audioData = new char[this->audioSize];
-    audio_convert_info audioInfo = {};
-    audioInfo.samples_per_sec = this->sampleRate;
-    audioInfo.format = AUDIO_FORMAT_16BIT;
-    audioInfo.speakers = SPEAKERS_MONO;
-    obs_output_set_audio_conversion(output, &audioInfo);
-
+    this->dataFlag = -1;
+    this->width = 0;
+    this->height = 0;
+    this->videoData = nullptr;
+    this->videoSize = 0;
+    this->sampleRate = 0;
+    this->channel = 0;
+    this->audioData = nullptr;
+    this->audioSize = 0;
     this->sentBytes = 0;
     this->sendReady = false;
 	}
 
   virtual ~TRTCImpl() {
-    delete[] this->audioData;
-    delete[] this->videoData;
   }
 
 	void onCreate() {
@@ -85,6 +70,52 @@ public:
 	bool onStart() {
     blog(LOG_DEBUG, "TRTC_onStart");
     if (this->sendReady) return true;
+    this->dataFlag = -1;
+    video_t* video = obs_output_video(this->output);
+    if (!video)
+    {
+      blog(LOG_WARNING, "Trying to start without video!");
+    } else {
+      // 视频参数初始化
+      this->width = (int)obs_output_get_width(this->output);
+      this->height = (int)obs_output_get_height(this->output);
+      video_scale_info videoInfo = {};
+      videoInfo.format = VIDEO_FORMAT_I420;
+      videoInfo.width = this->width;
+      videoInfo.height = this->height;
+      videoInfo.range = VIDEO_RANGE_DEFAULT;
+      videoInfo.colorspace = VIDEO_CS_DEFAULT;
+      obs_output_set_video_conversion(this->output, &videoInfo);
+      blog(LOG_DEBUG, "video size: %d x %d", this->width, this->height);
+      this->dataFlag = OBS_OUTPUT_VIDEO;
+    }
+
+    audio_t* audio = obs_output_audio(this->output);
+    if (!audio)
+    {
+      blog(LOG_WARNING, "Trying to start without audio!");
+    } else {
+      // 音频参数初始化
+      this->sampleRate = 48000;
+      this->channel = 1;
+      audio_convert_info audioInfo = {};
+      audioInfo.samples_per_sec = this->sampleRate;
+      audioInfo.format = AUDIO_FORMAT_16BIT;
+      audioInfo.speakers = SPEAKERS_MONO;
+      obs_output_set_audio_conversion(this->output, &audioInfo);
+      blog(LOG_DEBUG, "audio sampleRate: %d", this->sampleRate);
+      if (this->dataFlag == -1) {
+        this->dataFlag = OBS_OUTPUT_AUDIO;
+      } else {
+        this->dataFlag = 0;
+      }
+    }
+
+    if (this->dataFlag == -1) {
+      this->_setLastError("Trying to start without any video or audio!");
+      return false;
+    }
+
     ITRTCCloud *trtcCloud = getTRTCShareInstance();
     // TRTC进房
     TRTCParams params;
@@ -105,7 +136,7 @@ public:
     // 启用视频/音频自定义采集
     trtcCloud->enableCustomVideoCapture(TRTCVideoStreamTypeBig, true);
     trtcCloud->enableCustomAudioCapture(true);
-		return true;
+    return true;
 	}
 
   void onStop() {
@@ -194,12 +225,36 @@ public:
     if (result < 0) {
       this->_setLastError("enter room failed: %d", result);
     } else {
+      if(!obs_output_can_begin_data_capture(this->output,this->dataFlag)){
+        this->_setLastError("obs_output_can_begin_data_capture returns false");
+        return;
+      }
+      if (!obs_output_begin_data_capture(this->output, this->dataFlag)) {
+        this->_setLastError("obs_output_begin_data_capture returns false");
+        return;
+      }
+      this->videoSize = this->width * this->height * 3 / 2;
+      this->videoData = new char[this->videoSize];
+      this->audioSize = this->sampleRate * 2 * this->channel;
+      this->audioData = new char[this->audioSize];
+
       this->sendReady = true;
     }
 	}
 
 	virtual void onExitRoom(int reason) {
     blog(LOG_DEBUG, "TRTC_onExitRoom: %d", reason);
+    obs_output_end_data_capture(this->output);
+    if (this->videoData) {
+      delete[] this->videoData;
+      this->videoSize = 0;
+      this->videoData = nullptr;
+    }
+    if (this->audioData) {
+      delete[] this->audioData;
+      this->audioSize = 0;
+      this->audioData = nullptr;
+    }
     this->sendReady = false;
 	}
 
