@@ -33,6 +33,7 @@ private:
     vsnprintf(strBuf, 1024 - 1, format, pArgs);
     va_end(pArgs);
     obs_output_set_last_error(this->output, strBuf);
+    blog(LOG_ERROR, "setLastError | %s", strBuf);
   }
 public:
 	TRTCImpl(obs_output_t *output) {
@@ -216,6 +217,7 @@ static const char *trtc_output_getname(void *unused)
 
 static void *trtc_output_create(obs_data_t *settings, obs_output_t *output)
 {
+  blog(LOG_DEBUG, "trtc_output_create");
 	TRTCImpl *impl = new TRTCImpl(output);
 	impl->onCreate();
 	UNUSED_PARAMETER(settings);
@@ -224,6 +226,7 @@ static void *trtc_output_create(obs_data_t *settings, obs_output_t *output)
 
 static void trtc_output_destroy(void *data)
 {
+  blog(LOG_DEBUG, "trtc_output_destroy");
 	TRTCImpl *impl = (TRTCImpl *)data;
 	if (impl) {
 		impl->onDestroy();
@@ -233,24 +236,28 @@ static void trtc_output_destroy(void *data)
 
 static bool trtc_output_start(void *data)
 {
+  blog(LOG_DEBUG, "trtc_output_start");
 	TRTCImpl *impl = (TRTCImpl *)data;
 	return impl->onStart();
 }
 
 static void trtc_output_stop(void *data, uint64_t ts)
 {
+  blog(LOG_DEBUG, "trtc_output_stop");
 	TRTCImpl *impl = (TRTCImpl *)data;
   impl->onStop();
 }
 
 static void receive_video(void *data, struct video_data *frame)
 {
+  blog(LOG_DEBUG, "receive_video");
 	TRTCImpl *impl = (TRTCImpl *)data;
   impl->receiveVideo(frame);
 }
 
 static void receive_audio(void *data, struct audio_data *frame)
 {
+  blog(LOG_DEBUG, "receive_audio");
 	TRTCImpl *impl = (TRTCImpl *)data;
   impl->receiveAudio(frame);
 }
