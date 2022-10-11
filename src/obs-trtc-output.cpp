@@ -132,7 +132,20 @@ public:
     encParam.videoBitrate = 1500;
     encParam.minVideoBitrate = 300;
     encParam.enableAdjustRes = false;
-    trtcCloud->setVideoEncoderParam(encParam);
+    char cmd[2048];
+    sprintf(cmd, "{\n"
+                 "    \"api\":\"setVideoEncodeParamEx\",\n"
+                 "    \"params\":{\n"
+                 "        \"codecType\":1,\n"
+                 "        \"videoWidth\":%d,\n"
+                 "        \"videoHeight\":%d,\n"
+                 "        \"videoFps\":20,\n"
+                 "        \"videoBitrate\":1500,\n"
+                 "        \"minVideoBitrate\":300,\n"
+                 "        \"streamType\":0,\n"
+                 "    }\n"
+                 "}", this->width, this->height);
+    trtcCloud->callExperimentalAPI(cmd);
     // 启用视频/音频自定义采集
     trtcCloud->enableCustomVideoCapture(TRTCVideoStreamTypeBig, true);
     trtcCloud->enableCustomAudioCapture(true);
