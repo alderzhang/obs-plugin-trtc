@@ -23,8 +23,6 @@ private:
   char *audioData;
   uint32_t audioSize;
   bool sendReady;
-  std::mutex statusMutex;
-  std::condition_variable startCV;
 
   void _setLastError(const char * format, ...) {
     char strBuf[1024] = {0};
@@ -108,10 +106,7 @@ public:
     // 启用视频/音频自定义采集
     trtcCloud->enableCustomVideoCapture(TRTCVideoStreamTypeBig, true);
     trtcCloud->enableCustomAudioCapture(true);
-    // 等待进房结果
-    std::unique_lock<std::mutex> lck(this->statusMutex);
-    this->startCV.wait(lck);
-		return this->sendReady;
+		return true;
 	}
 
   void onStop() {
@@ -197,18 +192,15 @@ public:
 
 	virtual void onEnterRoom(int result) {
     blog(LOG_DEBUG, "TRTC_onEnterRoom: %d", result);
-    std::unique_lock<std::mutex> lck(this->statusMutex);
     if (result < 0) {
       this->_setLastError("enter room failed: %d", result);
     } else {
       this->sendReady = true;
     }
-    this->startCV.notify_all();
 	}
 
 	virtual void onExitRoom(int reason) {
     blog(LOG_DEBUG, "TRTC_onExitRoom: %d", reason);
-    std::unique_lock<std::mutex> lck(this->statusMutex);
     this->sendReady = false;
 	}
 
