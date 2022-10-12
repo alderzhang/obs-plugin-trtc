@@ -126,21 +126,21 @@ public:
     params.roomId = ROOM_ID;
     trtcCloud->enterRoom(params,  TRTCAppSceneLIVE);
     // 设置视频编码参数
-    int fps = 20;
-    int bitrate = (int)sqrt(this->width * this->height) / 1440 * (3000 * fps / 15);
+    uint32_t fps = 20;
+    uint32_t bitrate = (uint32_t)sqrt(this->width * this->height) / 1440 * (3000 * fps / 15);
     char cmd[2048];
     sprintf(cmd, "{\n"
                  "    \"api\":\"setVideoEncodeParamEx\",\n"
                  "    \"params\":{\n"
                  "        \"codecType\":1,\n"
-                 "        \"videoWidth\":%d,\n"
-                 "        \"videoHeight\":%d,\n"
-                 "        \"videoFps\":%d,\n"
-                 "        \"videoBitrate\":%d,\n"
-                 "        \"minVideoBitrate\":300,\n"
+                 "        \"videoWidth\":%u,\n"
+                 "        \"videoHeight\":%u,\n"
+                 "        \"videoFps\":%u,\n"
+                 "        \"videoBitrate\":%u,\n"
+                 "        \"minVideoBitrate\":%u,\n"
                  "        \"streamType\":0,\n"
                  "    }\n"
-                 "}", this->width, this->height, fps, bitrate);
+                 "}", this->width, this->height, fps, bitrate, bitrate / 10);
     trtcCloud->callExperimentalAPI(cmd);
     // 启用视频/音频自定义采集
     trtcCloud->enableCustomVideoCapture(TRTCVideoStreamTypeBig, true);
@@ -160,7 +160,7 @@ public:
   }
 
   void receiveVideo(struct video_data *frame) {
-    // blog(LOG_DEBUG, "TRTC_receiveVideo");
+//    blog(LOG_DEBUG, "TRTC_receiveVideo: %llu", frame->timestamp);
     if (!this->sendReady) return;
     // 将帧数据平铺
     char *dst = this->videoData;
@@ -211,7 +211,7 @@ public:
   }
 
   void receiveAudio(struct audio_data *frame) {
-    // blog(LOG_DEBUG, "TRTC_receiveAudio");
+//    blog(LOG_DEBUG, "TRTC_receiveAudio: %llu", frame->timestamp);
     if (!this->sendReady) return;
     // 将帧数据平铺
     uint32_t offset = 0;
