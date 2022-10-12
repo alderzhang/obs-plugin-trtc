@@ -1,5 +1,6 @@
 ﻿#include <obs-module.h>
 #include <ITRTCCloud.h>
+#include <math.h>
 
 // TRTC进房信息
 #define SDK_APP_ID 0
@@ -125,13 +126,8 @@ public:
     params.roomId = ROOM_ID;
     trtcCloud->enterRoom(params,  TRTCAppSceneLIVE);
     // 设置视频编码参数
-    TRTCVideoEncParam encParam;
-    encParam.videoResolution = TRTCVideoResolution_960_720;
-    encParam.resMode = TRTCVideoResolutionModeLandscape;
-    encParam.videoFps = 20;
-    encParam.videoBitrate = 1500;
-    encParam.minVideoBitrate = 300;
-    encParam.enableAdjustRes = false;
+    int fps = 20;
+    int bitrate = (int)sqrt(this->width * this->height) / 1440 * (3000 * fps / 15);
     char cmd[2048];
     sprintf(cmd, "{\n"
                  "    \"api\":\"setVideoEncodeParamEx\",\n"
@@ -139,12 +135,12 @@ public:
                  "        \"codecType\":1,\n"
                  "        \"videoWidth\":%d,\n"
                  "        \"videoHeight\":%d,\n"
-                 "        \"videoFps\":20,\n"
-                 "        \"videoBitrate\":1500,\n"
+                 "        \"videoFps\":%d,\n"
+                 "        \"videoBitrate\":%d,\n"
                  "        \"minVideoBitrate\":300,\n"
                  "        \"streamType\":0,\n"
                  "    }\n"
-                 "}", this->width, this->height);
+                 "}", this->width, this->height, fps, bitrate);
     trtcCloud->callExperimentalAPI(cmd);
     // 启用视频/音频自定义采集
     trtcCloud->enableCustomVideoCapture(TRTCVideoStreamTypeBig, true);
