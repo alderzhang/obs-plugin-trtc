@@ -221,23 +221,22 @@ public:
     uint32_t offset = 0;
     for (int plane = 0; plane < MAX_AV_PLANES; plane++) {
       const uint8_t *data = frame->data[plane];
-      uint32_t lineSize = frame->frames * 2; // 16位深，每个采样点2byte
-      if (data && offset + lineSize <= this->audioSize) {
-        memcpy(this->audioData + offset, data, lineSize);
-        offset += lineSize;
+      uint32_t planeSize = frame->frames * 2; // 16位深，每个采样点2byte
+      if (data && offset + planeSize <= this->audioSize) {
+        memcpy(this->audioData + offset, data, planeSize);
+        offset += planeSize;
       }
     }
     // 塞入TRTC
     ITRTCCloud *trtcCloud = getTRTCShareInstance();
     TRTCAudioFrame trtcFrame;
     trtcFrame.audioFormat = liteav::TRTCAudioFrameFormatPCM;
-    trtcFrame.length = this->audioSize;
+    trtcFrame.length = offset;
     trtcFrame.data = this->audioData;
     trtcFrame.sampleRate = this->sampleRate;
     trtcFrame.channel = this->channel;
     trtcFrame.timestamp = frame->timestamp;
     trtcCloud->sendCustomAudioData(&trtcFrame);
-
   }
 
   uint32_t getSendBytes() {
