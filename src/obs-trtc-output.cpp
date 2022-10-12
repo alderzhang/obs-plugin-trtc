@@ -200,7 +200,7 @@ public:
     // 塞入TRTC
     ITRTCCloud *trtcCloud = getTRTCShareInstance();
     TRTCVideoFrame trtcFrame;
-    trtcFrame.timestamp = frame->timestamp;
+    trtcFrame.timestamp = frame->timestamp / 1000000;
     trtcFrame.videoFormat = TRTCVideoPixelFormat_I420;
     trtcFrame.bufferType = TRTCVideoBufferType_Buffer;
     trtcFrame.length = this->videoSize;
@@ -231,7 +231,7 @@ public:
     trtcFrame.data = this->audioData;
     trtcFrame.sampleRate = this->sampleRate;
     trtcFrame.channel = this->channel;
-    trtcFrame.timestamp = frame->timestamp;
+    trtcFrame.timestamp = frame->timestamp / 1000000;
     trtcCloud->sendCustomAudioData(&trtcFrame);
   }
 
