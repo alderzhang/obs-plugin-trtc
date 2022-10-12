@@ -127,7 +127,7 @@ public:
     trtcCloud->enterRoom(params,  TRTCAppSceneLIVE);
     // 设置视频编码参数
     uint32_t fps = 20;
-    uint32_t bitrate = (uint32_t)sqrt(this->width * this->height) / 1440 * (3000 * fps / 15);
+    uint32_t bitrate = (uint32_t)(sqrt(this->width * this->height) / 1440.0 * (3000.0 * fps / 15.0));
     char cmd[2048];
     sprintf(cmd, "{\n"
                  "    \"api\":\"setVideoEncodeParamEx\",\n"
@@ -138,7 +138,7 @@ public:
                  "        \"videoFps\":%u,\n"
                  "        \"videoBitrate\":%u,\n"
                  "        \"minVideoBitrate\":%u,\n"
-                 "        \"streamType\":0,\n"
+                 "        \"streamType\":0\n"
                  "    }\n"
                  "}", this->width, this->height, fps, bitrate, bitrate / 10);
     trtcCloud->callExperimentalAPI(cmd);
